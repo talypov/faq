@@ -1,0 +1,120 @@
+@api.route('/admin/stats/')
+class AdminStatSocialNetwork(Resource):
+@api.parameters(parameters.InfluencerStatisticGetParameters())
+def get(self, args):
+"""
+Influencers statistic for social links
+"""
+
+current_social_network = args.get('social_network')
+instagram = SocialLink.query.filter_by(social_network='instagram').count()
+facebook = SocialLink.query.filter_by(social_network='facebook').count()
+youtube = SocialLink.query.filter_by(social_network='youtube').count()
+twitter = SocialLink.query.filter_by(social_network='twitter').count()
+all = SocialLink.query.count()
+today_datetime = datetime(datetime.today().year, datetime.today().month, datetime.today().day)
+yesterday = datetime(datetime.today().year, datetime.today().month, datetime.today().day - 1)
+
+# profile_insights
+sn_req = SocialLink.query.filter(
+SocialLink.is_requested, SocialLink.social_network == current_social_network
+).count()
+sn_deactivated = SocialLink.query.filter(
+SocialLink.is_deactivated, SocialLink.social_network == current_social_network
+).count()
+not_processed_today = SocialLink.query.filter(
+SocialLink.scrapper_finished_at is not None
+).filter(
+SocialLink.scrapper_finished_at <= yesterday
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+processed_today = SocialLink.query.filter(
+SocialLink.scrapper_finished_at is not None
+).filter(
+SocialLink.scrapper_finished_at > yesterday
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+total = SocialLink.query.filter_by(
+social_network=current_social_network
+).count()
+
+# audience_insights
+
+audience_not_none = SocialLink.query.filter(
+SocialLink.audience_scrapper_finished_at != None
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+audience_processed_today = SocialLink.query.filter(
+SocialLink.audience_scrapper_finished_at != None
+).filter(
+SocialLink.audience_scrapper_finished_at > yesterday
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+audience_is_deactivated = SocialLink.query.filter(
+SocialLink.audience_is_deactivated
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+audience_is_requested = SocialLink.query.filter(
+SocialLink.audience_is_requested
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+
+social_link_stats = dict()
+for social_link in social_links:
+social_link_stats[social_link] = self.get_social_link_stats(social_link)
+
+
+
+
+def  get_social_link_stats(social_link):
+"""
+Influencers statistic for one social links
+"""
+today_datetime = datetime(datetime.today().year, datetime.today().month, datetime.today().day)
+yesterday = datetime(datetime.today().year, datetime.today().month, datetime.today().day - 1)
+
+# profile_insights
+current_social_network = args.get('social_network')
+sn_req = SocialLink.query.filter(
+SocialLink.is_requested, SocialLink.social_network == current_social_network
+).count()
+sn_deactivated = SocialLink.query.filter(
+SocialLink.is_deactivated, SocialLink.social_network == current_social_network
+).count()
+not_processed_today = SocialLink.query.filter(
+SocialLink.scrapper_finished_at is not None
+).filter(
+SocialLink.scrapper_finished_at <= yesterday
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+processed_today = SocialLink.query.filter(
+SocialLink.scrapper_finished_at is not None
+).filter(
+SocialLink.scrapper_finished_at > yesterday
+).filter(
+SocialLink.social_network == current_social_network
+).count()
+total = SocialLink.query.filter_by(
+social_network=current_social_network
+).count()
+
+statistic = jsonify({
+'profile_insights': {
+current_social_network: {
+'requested': sn_req,
+'deactivated': sn_deactivated,
+'total': total,
+'not processed today': not_processed_today,
+'processed_today': processed_today,
+},
+},
+})
+
+return statistic
